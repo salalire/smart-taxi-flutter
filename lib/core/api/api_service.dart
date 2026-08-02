@@ -281,8 +281,19 @@ class ApiService {
     return r.data as Map<String, dynamic>;
   }
 
-  Future<List<Map<String, dynamic>>> getComplianceReport() async {
-    final r = await _c.get('/api/ministry/reports/compliance/');
+  Future<List<Map<String, dynamic>>> getMinistryObservations(
+      {bool? reviewed}) async {
+    final r = await _c.get('/api/ministry/observations/',
+        queryParameters: {if (reviewed != null) 'reviewed': reviewed});
+    final raw = r.data is Map ? (r.data['results'] ?? r.data) : r.data;
+    return List<Map<String, dynamic>>.from(raw as List);
+  }
+
+  Future<void> markObservationReviewed(int id) async {
+    await _c.patch('/api/ministry/observations/$id/review/');
+  }
+
+  Future<List<Map<String, dynamic>>> getComplianceReport() async {    final r = await _c.get('/api/ministry/reports/compliance/');
     final raw = r.data is Map ? (r.data['results'] ?? r.data) : r.data;
     return List<Map<String, dynamic>>.from(raw as List);
   }

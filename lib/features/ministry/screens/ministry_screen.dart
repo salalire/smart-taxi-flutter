@@ -13,6 +13,8 @@ import '../../../core/models/relocation.dart';
 import '../../../core/models/violation.dart';
 import '../../../core/models/passenger_report.dart';
 
+// DemandReport is defined in passenger_report.dart
+
 class MinistryScreen extends ConsumerStatefulWidget {
   const MinistryScreen({super.key});
 
@@ -31,13 +33,16 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
   List<RouteViolation> _violations = [];
   List<PassengerReport> _reports = [];
   List<Map<String, dynamic>> _compliance = [];
+  List<DemandReport> _demandReports = [];
+  List<Map<String, dynamic>> _observations = [];
+  Map<String, dynamic> _dashboardStats = {};
 
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 5, vsync: this);
+    _tabs = TabController(length: 6, vsync: this);
     _loadAll();
     _refreshTimer =
         Timer.periodic(const Duration(seconds: 15), (_) => _loadAll());
@@ -54,14 +59,18 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
         svc.getPendingRelocations(),
         svc.getViolations(),
         svc.getPassengerReports(),
+        svc.getDemandReports(),
+        svc.getDashboard(),
       ]);
       if (!mounted) return;
       setState(() {
-        _buses = results[0] as List<Driver>;
-        _zones = results[1] as List<Zone>;
-        _relocations = results[2] as List<RelocationRequest>;
-        _violations = results[3] as List<RouteViolation>;
-        _reports = results[4] as List<PassengerReport>;
+        _buses        = results[0] as List<Driver>;
+        _zones        = results[1] as List<Zone>;
+        _relocations  = results[2] as List<RelocationRequest>;
+        _violations   = results[3] as List<RouteViolation>;
+        _reports      = results[4] as List<PassengerReport>;
+        _demandReports = results[5] as List<DemandReport>;
+        _dashboardStats = results[6] as Map<String, dynamic>;
       });
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
@@ -72,6 +81,15 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
       final data = await ref.read(apiServiceProvider).getComplianceReport();
       if (!mounted) return;
       setState(() => _compliance = data);
+    } catch (_) {}
+  }
+
+  Future<void> _loadObservations() async {
+    try {
+      final svc = ref.read(apiServiceProvider);
+      final raw = await svc.getMinistryObservations();
+      if (!mounted) return;
+      setState(() => _observations = raw);
     } catch (_) {}
   }
 
@@ -150,6 +168,7 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
             Tab(text: 'Relocations (${_relocations.length})'),
             Tab(text: 'Violations (${_violations.length})'),
             const Tab(text: 'Reports & Compliance'),
+            const Tab(text: 'Dashboard'),
           ],
         ),
       ),
@@ -161,6 +180,7 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
           _buildRelocations(),
           _buildViolations(),
           _buildReportsTab(),
+          _buildDashboard(),
         ],
       ),
     );
@@ -429,18 +449,20 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
 
   Widget _buildReportsTab() {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(children: [
         const TabBar(
           tabs: [
             Tab(text: 'Passenger Reports'),
-            Tab(text: 'Compliance'),
+            Tab(text: 'Demand Reports'),
+            Tab(text: 'Observations'),
           ],
         ),
         Expanded(
           child: TabBarView(children: [
             _buildPassengerReports(),
-            _buildComplianceReport(),
+            _buildDemandReports(),
+            _buildObservations(),
           ]),
         ),
       ]),
@@ -492,76 +514,227 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
     );
   }
 
-  Widget _buildComplianceReport() {
+  Widget _buildDemandReports() {
+    if (_demandReports.isEmpty) {
+      return _emptyState('No demand reports yet.', Icons.campaign_outlined);
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(14),
+      itemCount: _demandReports.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (_, i) {
+        final r = _demandReports[i];
+        return Card(
+          child: ListTile(
+            leading: const CircleAvatar(
+              child: Icon(Icons.people_outline, size: 18),
+            ),
+            title: Text(r.zoneName,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(
+              '${r.reportType.replaceAll('_', ' ')} · weight: ${r.weight.toStringAsFixed(2)}'
+              '\n${r.createdAt.length >= 10 ? r.createdAt.substring(0, 10) : r.createdAt}',
+            ),
+            isThreeLine: true,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildObservations() {
     return Column(children: [
       Padding(
         padding: const EdgeInsets.all(14),
         child: Row(children: [
-          const Text('Driver Compliance Report',
+          const Text('Field Observations',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
           const Spacer(),
           OutlinedButton.icon(
-            onPressed: _loadCompliance,
+            onPressed: _loadObservations,
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Load'),
           ),
         ]),
       ),
-      if (_compliance.isEmpty)
+      if (_observations.isEmpty)
         Expanded(
-            child: Center(
-          child: Text('Tap "Load" to fetch the compliance report.',
-              style: TextStyle(color: Colors.grey.shade600)),
-        ))
+          child: Center(
+            child: Text('Tap "Load" to fetch inspector field observations.',
+                style: TextStyle(color: Colors.grey.shade600)),
+          ),
+        )
       else
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-            itemCount: _compliance.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemCount: _observations.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) {
-              final d = _compliance[i];
-              final score =
-                  d['compliance_score'] as int? ?? d['score'] as int? ?? 0;
-              final plate = d['license_plate'] as String? ?? '—';
-              final username = d['username'] as String? ?? '—';
-              final violations = d['violation_count'] as int? ??
-                  (d['violations'] as List?)?.length ??
-                  0;
-
-              final color = score >= 80
-                  ? Colors.green
-                  : score >= 60
-                      ? Colors.orange
-                      : Colors.red;
-
-              return ListTile(
-                dense: true,
-                leading: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: color.withAlpha(30),
-                  child: Text(
-                    '$score',
-                    style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12),
+              final o = _observations[i];
+              final reviewed = o['is_reviewed'] as bool? ?? false;
+              return Card(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: reviewed
+                        ? Colors.grey.shade100
+                        : Colors.blue.shade50,
+                    child: Icon(Icons.remove_red_eye_outlined,
+                        color: reviewed ? Colors.grey : Colors.blue,
+                        size: 18),
                   ),
-                ),
-                title: Text(plate,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(username),
-                trailing: Text(
-                  '$violations violation${violations == 1 ? '' : 's'}',
-                  style: TextStyle(
-                      color: violations > 0 ? Colors.red : Colors.grey,
-                      fontSize: 12),
+                  title: Text(
+                    '${o['observation_type'] ?? '—'} — ${o['zone_name'] ?? '—'}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    'Inspector: ${o['inspector_badge'] ?? '—'}'
+                    '${(o['plate_number'] as String?)?.isNotEmpty == true ? ' · Plate: ${o['plate_number']}' : ''}'
+                    '\n${(o['description'] as String?)?.isNotEmpty == true ? o['description'] : 'No description'}',
+                  ),
+                  isThreeLine: true,
+                  trailing: reviewed
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : TextButton(
+                          onPressed: () async {
+                            await ref
+                                .read(apiServiceProvider)
+                                .markObservationReviewed(o['id'] as int);
+                            _loadObservations();
+                          },
+                          child: const Text('Review'),
+                        ),
                 ),
               );
             },
           ),
         ),
     ]);
+  }
+
+  Widget _buildDashboard() {
+    final drivers = _dashboardStats['drivers'] as Map? ?? {};
+    final violations = _dashboardStats['violations'] as Map? ?? {};
+    final relocations = _dashboardStats['relocations'] as Map? ?? {};
+    final zones = _dashboardStats['zones'] as List? ?? [];
+
+    return RefreshIndicator(
+      onRefresh: _loadAll,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _StatCard(
+            title: 'Drivers',
+            icon: Icons.directions_bus_rounded,
+            color: Colors.indigo,
+            stats: {
+              'On Route': '${drivers['on_route'] ?? 0}',
+              'Off Route': '${drivers['off_route'] ?? 0}',
+              'Relocating': '${drivers['relocating'] ?? 0}',
+              'Offline': '${drivers['offline'] ?? 0}',
+              'Total': '${drivers['total'] ?? 0}',
+            },
+          ),
+          const SizedBox(height: 12),
+          _StatCard(
+            title: 'Violations',
+            icon: Icons.warning_amber_rounded,
+            color: Colors.orange,
+            stats: {
+              'Open': '${violations['open'] ?? 0}',
+              'Dispatched': '${violations['dispatched'] ?? 0}',
+              'Confirmed': '${violations['confirmed'] ?? 0}',
+              'Dismissed': '${violations['dismissed'] ?? 0}',
+              'Total': '${violations['total'] ?? 0}',
+            },
+          ),
+          const SizedBox(height: 12),
+          _StatCard(
+            title: 'Relocations',
+            icon: Icons.transfer_within_a_station_outlined,
+            color: Colors.teal,
+            stats: {
+              'Pending': '${relocations['pending'] ?? 0}',
+              'Approved': '${relocations['approved'] ?? 0}',
+              'Rejected': '${relocations['rejected'] ?? 0}',
+            },
+          ),
+          const SizedBox(height: 12),
+          if (zones.isNotEmpty) ...[
+            const Text('Zone Status Snapshot',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 8),
+            ...zones.map((z) {
+              final status = z['status'] as String? ?? 'OK';
+              final color = _zoneColor(status);
+              return Card(
+                margin: const EdgeInsets.only(bottom: 6),
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(_zoneIcon(status), color: color, size: 20),
+                  title: Text(z['name'] as String? ?? '—'),
+                  trailing: Text(
+                    '${z['bus_count'] ?? 0} bus${(z['bus_count'] ?? 0) == 1 ? '' : 'es'} · $status',
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              );
+            }),
+          ],
+          const SizedBox(height: 12),
+          // Compliance report
+          Row(children: [
+            const Text('Compliance Report',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const Spacer(),
+            OutlinedButton.icon(
+              onPressed: _loadCompliance,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Load'),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          if (_compliance.isEmpty)
+            Text('Tap "Load" to fetch the compliance report.',
+                style: TextStyle(color: Colors.grey.shade600))
+          else
+            ..._compliance.map((d) {
+              final score = d['compliance_score'] as int? ?? 0;
+              final color = score >= 80
+                  ? Colors.green
+                  : score >= 60
+                      ? Colors.orange
+                      : Colors.red;
+              return ListTile(
+                dense: true,
+                leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: color.withAlpha(30),
+                  child: Text('$score',
+                      style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11)),
+                ),
+                title: Text(d['license_plate'] as String? ?? '—',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(d['username'] as String? ?? '—'),
+                trailing: Text(
+                  '${d['confirmed_violations'] ?? 0} confirmed',
+                  style: TextStyle(
+                      color: (d['confirmed_violations'] as int? ?? 0) > 0
+                          ? Colors.red
+                          : Colors.grey,
+                      fontSize: 12),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -593,4 +766,63 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
           ),
         ]),
       );
+}
+
+// ─── Stat Card Widget ─────────────────────────────────────────────────────────
+
+class _StatCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final Map<String, String> stats;
+
+  const _StatCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.stats,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Text(title,
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: color)),
+            ]),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: stats.entries.map((e) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(e.value,
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: color)),
+                    Text(e.key,
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey.shade600)),
+                  ],
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
