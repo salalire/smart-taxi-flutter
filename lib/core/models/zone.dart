@@ -22,8 +22,11 @@ class Zone {
   factory Zone.fromJson(Map<String, dynamic> j) => Zone(
         id: j['id'] as int,
         name: j['name'] as String,
-        centerLatitude: (j['center_latitude'] ?? j['center_lat'] as num).toDouble(),
-        centerLongitude: (j['center_longitude'] ?? j['center_lng'] as num).toDouble(),
+        // Backend always sends center_latitude/center_longitude.
+        // center_lat/center_lng are accepted as fallbacks for the
+        // zone_demand_summary endpoint which uses different key names.
+        centerLatitude: ((j['center_latitude'] ?? j['center_lat']) as num? ?? 0.0).toDouble(),
+        centerLongitude: ((j['center_longitude'] ?? j['center_lng']) as num? ?? 0.0).toDouble(),
         radiusKm: (j['radius_km'] as num? ?? 2.0).toDouble(),
         status: j['status'] as String? ?? 'OK',
         busCount: j['bus_count'] as int? ?? 0,

@@ -223,8 +223,19 @@ class ApiService {
   }
 
   /// Dispatch an inspector to a violation.
-  Future<void> dispatchInspector(int violationId) async {
-    await _c.post('/api/ministry/violations/$violationId/dispatch/');
+  /// [inspectorId] is required by the backend — the Ministry must pick one.
+  Future<void> dispatchInspector(int violationId, int inspectorId) async {
+    await _c.post(
+      '/api/ministry/violations/$violationId/dispatch/',
+      data: {'inspector_id': inspectorId},
+    );
+  }
+
+  /// Fetch all inspectors so the Ministry can pick one to dispatch.
+  Future<List<Map<String, dynamic>>> getInspectors() async {
+    final r = await _c.get('/api/inspector/list/');
+    final raw = r.data is Map ? (r.data['results'] ?? r.data) : r.data;
+    return List<Map<String, dynamic>>.from(raw as List);
   }
 
   Future<List<Zone>> getMinistryZones() async {
@@ -293,7 +304,8 @@ class ApiService {
     await _c.patch('/api/ministry/observations/$id/review/');
   }
 
-  Future<List<Map<String, dynamic>>> getComplianceReport() async {    final r = await _c.get('/api/ministry/reports/compliance/');
+  Future<List<Map<String, dynamic>>> getComplianceReport() async {
+    final r = await _c.get('/api/ministry/reports/compliance/');
     final raw = r.data is Map ? (r.data['results'] ?? r.data) : r.data;
     return List<Map<String, dynamic>>.from(raw as List);
   }

@@ -114,8 +114,28 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
   }
 
   Future<void> _dispatchInspector(int violationId) async {
+    // Fetch inspectors and let Ministry pick one
+    List<Map<String, dynamic>> inspectors = [];
     try {
-      await ref.read(apiServiceProvider).dispatchInspector(violationId);
+      inspectors = await ref.read(apiServiceProvider).getInspectors();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not load inspectors: $e')));
+      return;
+    }
+
+    if (!mounted) return;
+
+    final picked = await showDialog<int>(
+      context: context,
+      builder: (_) => _InspectorPickerDialog(inspectors: inspectors),
+    );
+
+    if (picked == null) return; // user cancelled
+
+    try {
+      await ref.read(apiServiceProvider).dispatchInspector(violationId, picked);
       _loadAll();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -768,7 +788,63 @@ class _MinistryScreenState extends ConsumerState<MinistryScreen>
       );
 }
 
-// ─── Stat Card Widget ─────────────────────────────────────────────────────────
+// ─── Inspector Picker Dialog ──────────────────────────────────────────────────
+
+class _InspectorPickerDialog extends StatelessWidget {
+  final List<Map<String, dynamic>> inspectors;
+  const _InspectorPickerDialog({required this.inspectors});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Select Inspector'),
+      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      content: inspectors.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No inspectors available.'),
+            )
+          : SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: inspectors.length,
+                itemBuilder: (_, i) {
+                  final ins = inspectors[i];
+                  final available = ins['is_available'] as bool? ?? true;
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          available ? Colors.green.shade50 : Colors.grey.shade100,
+                      child: Icon(
+                        Icons.shield_outlined,
+                        color: available ? Colors.green : Colors.grey,
+                        size: 18,
+                      ),
+                    ),
+                    title: Text(
+                      'Badge: ${ins['badge_number'] ?? '—'}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      '${ins['username'] ?? ''}  ·  '
+                      'Zone: ${ins['assigned_zone'] ?? 'Unassigned'}  ·  '
+                      '${available ? 'Available' : 'Busy'}',
+                    ),
+                    onTap: () => Navigator.pop(context, ins['id'] as int),
+                  );
+                },
+              ),
+            ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+}
 
 class _StatCard extends StatelessWidget {
   final String title;

@@ -644,18 +644,21 @@ class _FieldObservationSheet extends StatefulWidget {
 
 class _FieldObservationSheetState extends State<_FieldObservationSheet> {
   int? _selectedZoneId;
-  String _type = 'congestion';
+  String _type = 'bus_not_stopping';
   final _plateCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   bool _loading = false;
   bool _done = false;
 
+  // Values must match InspectorFieldObservation.TYPE_CHOICES in the backend.
   static const _types = [
-    ('congestion', 'Congestion — Too many buses in one spot'),
-    ('overloading', 'Overloading — Bus taking too many passengers'),
-    ('fare_violation', 'Fare Violation — Driver overcharging'),
-    ('route_deviation', 'Route Deviation — Bus off assigned route'),
-    ('other', 'Other observation'),
+    ('bus_not_stopping', 'Bus on route but not stopping'),
+    ('stop_abandoned',   'Bus stop abandoned'),
+    ('gps_disabled',     'Driver GPS disabled'),
+    ('overcrowding',     'Overcrowding at stop'),
+    ('undercrowding',    'Very low demand at stop'),
+    ('fare_violation',   'Fare violation observed'),
+    ('other',            'Other observation'),
   ];
 
   Future<void> _submit() async {
