@@ -24,6 +24,8 @@ class Route {
   final String name;
   final int? zoneId;
   final String? zoneName;
+  final int? destinationZoneId;
+  final String? destinationZoneName;
   final double officialFare;
   final double maxDeviationKm;
   final bool isActive;
@@ -34,6 +36,8 @@ class Route {
     required this.name,
     this.zoneId,
     this.zoneName,
+    this.destinationZoneId,
+    this.destinationZoneName,
     required this.officialFare,
     required this.maxDeviationKm,
     required this.isActive,
@@ -45,6 +49,8 @@ class Route {
         name: j['name'] as String,
         zoneId: j['zone'] as int?,
         zoneName: j['zone_name'] as String?,
+        destinationZoneId: j['destination_zone_id'] as int?,
+        destinationZoneName: j['destination_zone_name'] as String?,
         // official_fare comes as a decimal string e.g. "25.00" from DRF
         officialFare: double.tryParse(j['official_fare']?.toString() ?? '0') ?? 0.0,
         maxDeviationKm: (j['max_deviation_km'] as num? ?? 0.3).toDouble(),

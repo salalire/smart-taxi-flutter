@@ -29,7 +29,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   List<LatLng> _routePoints = [];
   String _routeName = '';
   double _officialFare = 0;
-  int? _currentZoneId;   // driver's own zone — excluded from relocation destinations
+  int? _currentZoneId;      // origin zone — excluded from relocation destinations
+  int? _destinationZoneId;  // destination zone — excluded from relocation destinations
   bool _loadingRoute = true;
 
   StreamSubscription? _gpsSub;
@@ -65,7 +66,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       setState(() {
         _routeName = route.name;
         _officialFare = route.officialFare;
-        _currentZoneId = route.zoneId;
+        _currentZoneId     = route.zoneId;
+        _destinationZoneId = route.destinationZoneId;
         _routePoints = route.waypoints
             .map((w) => LatLng(w.latitude, w.longitude))
             .toList();
@@ -289,6 +291,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         builder: (_) => _RelocationSheet(
           apiService: ref.read(apiServiceProvider),
           currentZoneId: _currentZoneId,
+          destinationZoneId: _destinationZoneId,
         ),
       );
 
@@ -314,8 +317,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
 
 class _RelocationSheet extends StatefulWidget {
   final ApiService apiService;
-  final int? currentZoneId; // driver's own zone — excluded from destination list
-  const _RelocationSheet({required this.apiService, this.currentZoneId});
+  final int? currentZoneId;     // origin zone — excluded
+  final int? destinationZoneId; // destination zone — excluded
+  const _RelocationSheet({
+    required this.apiService,
+    this.currentZoneId,
+    this.destinationZoneId,
+  });
 
   @override
   State<_RelocationSheet> createState() => _RelocationSheetState();
@@ -423,7 +431,9 @@ class _RelocationSheetState extends State<_RelocationSheet> {
                     border: OutlineInputBorder(),
                   ),
                   items: _zones
-                      .where((z) => z['id'] as int != widget.currentZoneId)
+                      .where((z) =>
+                          z['id'] as int != widget.currentZoneId &&
+                          z['id'] as int != widget.destinationZoneId)
                       .map((z) => DropdownMenuItem<int>(
                             value: z['id'] as int,
                             child: Text(z['name'] as String),
