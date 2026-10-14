@@ -22,6 +22,7 @@ class RouteWaypoint {
 class Route {
   final int id;
   final String name;
+  final int? zoneId;
   final String? zoneName;
   final double officialFare;
   final double maxDeviationKm;
@@ -31,6 +32,7 @@ class Route {
   const Route({
     required this.id,
     required this.name,
+    this.zoneId,
     this.zoneName,
     required this.officialFare,
     required this.maxDeviationKm,
@@ -41,8 +43,10 @@ class Route {
   factory Route.fromJson(Map<String, dynamic> j) => Route(
         id: j['id'] as int,
         name: j['name'] as String,
+        zoneId: j['zone'] as int?,
         zoneName: j['zone_name'] as String?,
-        officialFare: (j['official_fare'] as num? ?? 0).toDouble(),
+        // official_fare comes as a decimal string e.g. "25.00" from DRF
+        officialFare: double.tryParse(j['official_fare']?.toString() ?? '0') ?? 0.0,
         maxDeviationKm: (j['max_deviation_km'] as num? ?? 0.3).toDouble(),
         isActive: j['is_active'] as bool? ?? true,
         waypoints: (j['waypoints'] as List? ?? [])

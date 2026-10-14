@@ -29,6 +29,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   List<LatLng> _routePoints = [];
   String _routeName = '';
   double _officialFare = 0;
+  int? _currentZoneId;   // driver's own zone — excluded from relocation destinations
   bool _loadingRoute = true;
 
   StreamSubscription? _gpsSub;
@@ -64,6 +65,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       setState(() {
         _routeName = route.name;
         _officialFare = route.officialFare;
+        _currentZoneId = route.zoneId;
         _routePoints = route.waypoints
             .map((w) => LatLng(w.latitude, w.longitude))
             .toList();
@@ -284,8 +286,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
-        builder: (_) =>
-            _RelocationSheet(apiService: ref.read(apiServiceProvider)),
+        builder: (_) => _RelocationSheet(
+          apiService: ref.read(apiServiceProvider),
+          currentZoneId: _currentZoneId,
+        ),
       );
 
   void _showComplianceSheet() => showModalBottomSheet(
@@ -310,7 +314,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
 
 class _RelocationSheet extends StatefulWidget {
   final ApiService apiService;
-  const _RelocationSheet({required this.apiService});
+  final int? currentZoneId; // driver's own zone — excluded from destination list
+  const _RelocationSheet({required this.apiService, this.currentZoneId});
 
   @override
   State<_RelocationSheet> createState() => _RelocationSheetState();
@@ -418,6 +423,7 @@ class _RelocationSheetState extends State<_RelocationSheet> {
                     border: OutlineInputBorder(),
                   ),
                   items: _zones
+                      .where((z) => z['id'] as int != widget.currentZoneId)
                       .map((z) => DropdownMenuItem<int>(
                             value: z['id'] as int,
                             child: Text(z['name'] as String),

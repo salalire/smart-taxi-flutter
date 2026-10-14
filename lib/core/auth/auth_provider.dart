@@ -7,9 +7,10 @@ import 'auth_service.dart';
 
 /// Base URL — change this to your server's address.
 /// For Android emulator: 'http://10.0.2.2:8000'
-/// For physical device on same network: 'http://192.168.x.x:8000'
-const kApiBaseUrl = 'http://10.0.2.2:8000';
-const kWsBaseUrl = 'ws://10.0.2.2:8000';
+/// For physical device on same network: 'http://192.168.137.232:8000'
+/// For Chrome (web on same machine): 'http://localhost:8000'
+const kApiBaseUrl = 'http://192.168.137.232:8000';
+const kWsBaseUrl = 'ws://192.168.137.232:8000';
 
 final storageProvider = Provider<FlutterSecureStorage>(
   (_) => const FlutterSecureStorage(),

@@ -24,7 +24,8 @@ class PassengerReport {
         passengerUsername: j['passenger_username'] as String? ?? '',
         plateNumber: j['plate_number'] as String? ?? '',
         reportType: j['report_type'] as String? ?? 'other',
-        zoneName: j['zone_name'] as String?,
+        // backend returns zone as int id, not zone_name
+        zoneName: j['zone_name'] as String? ?? (j['zone'] != null ? 'Zone ${j['zone']}' : null),
         description: j['description'] as String? ?? '',
         createdAt: j['created_at'] as String? ?? '',
         isReviewed: j['is_reviewed'] as bool? ?? false,
