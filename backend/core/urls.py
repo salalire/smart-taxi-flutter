@@ -57,6 +57,7 @@ urlpatterns = [
     # Ministry — Route & Driver management
     path('ministry/routes/',                              views.ministry_routes,                      name='ministry-routes'),
     path('ministry/routes/<int:route_id>/',               views.ministry_route_detail,                name='ministry-route-detail'),
+    path('ministry/zones/create/',                        views.ministry_zone_create,                 name='ministry-zone-create'),
     path('ministry/drivers/',                             views.ministry_drivers,                     name='ministry-drivers'),
     path('ministry/drivers/<int:driver_id>/assign-route/', views.ministry_assign_route,               name='ministry-assign-route'),
 ]

@@ -30,10 +30,13 @@ export const markObservationReviewed = (id) =>
   api.patch(`/api/ministry/observations/${id}/review/`);
 
 // ── Routes (Ministry manages routes) ─────────────────────────────────────────
-export const getRoutes         = () => api.get('/api/driver/routes/');
+export const getRoutes         = () => api.get('/api/ministry/routes/');
 export const createRoute       = (data) => api.post('/api/ministry/routes/', data);
 export const updateRoute       = (id, data) => api.patch(`/api/ministry/routes/${id}/`, data);
 export const deleteRoute       = (id) => api.delete(`/api/ministry/routes/${id}/`);
 export const assignDriverRoute = (driverId, routeId) =>
   api.patch(`/api/ministry/drivers/${driverId}/assign-route/`, { route_id: routeId });
 export const getDrivers        = () => api.get('/api/ministry/drivers/');
+
+// ── Zones CRUD ────────────────────────────────────────────────────────────────
+export const createZone = (data) => api.post('/api/ministry/zones/create/', data);

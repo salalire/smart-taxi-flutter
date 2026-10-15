@@ -74,7 +74,13 @@ export default function Layout() {
       </nav>
 
       {/* Main content */}
-      <main style={{ marginLeft: 220, flex: 1, background: '#f8fafc', minHeight: '100vh' }}>
+      <main style={{
+        marginLeft: 220,
+        width: 'calc(100% - 220px)',
+        background: '#f8fafc',
+        minHeight: '100vh',
+        boxSizing: 'border-box',
+      }}>
         <Outlet />
       </main>
     </div>

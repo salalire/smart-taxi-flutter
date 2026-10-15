@@ -904,3 +904,20 @@ def ministry_assign_route(request, driver_id):
 
     driver.save()
     return Response(DriverSerializer(driver).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ministry_zone_create(request):
+    """
+    Ministry creates a new zone from the web dashboard.
+    Used by the inline zone creator in the Route form.
+    """
+    if not is_ministry(request.user):
+        return Response({'error': 'Ministry admin only.'}, status=403)
+
+    serializer = ZoneSerializer(data=request.data)
+    if serializer.is_valid():
+        zone = serializer.save()
+        return Response(ZoneSerializer(zone).data, status=201)
+    return Response(serializer.errors, status=400)
