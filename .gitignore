@@ -44,3 +44,20 @@ app.*.map.json
 # Generated Android plugin file (auto-created by flutter run)
 **/GeneratedPluginRegistrant.java
 **/GeneratedPluginRegistrant.kt
+
+# ── Backend (Django) ──────────────────────────────────────────────────────────
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/db.sqlite3
+backend/staticfiles/
+backend/*.pyc
+backend/.env
+backend/celerybeat-schedule
+backend/celerybeat.pid
+
+# ── Dashboard (React) ────────────────────────────────────────────────────────
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.env
+dashboard/.env.local
